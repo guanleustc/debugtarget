@@ -93,7 +93,7 @@ To flash the firmware to a Raspberry Pi Pico:
 ## SDK Integration
 
 The project uses:
-- **Pico SDK** (`pico_stdlib`): Standard I/O over USB (enabled), GPIO hardware abstraction
+- **Pico SDK** (`pico_stdlib`): Standard I/O over UART (enabled), GPIO hardware abstraction
 - **FreeRTOS-Kernel**: Latest main branch with RP2350 support (Arm Cortex-M33 and RISC-V)
 - **FreeRTOS-Kernel-Heap4**: Memory allocation scheme for FreeRTOS
 
@@ -120,7 +120,7 @@ The project uses:
 
 ### Main Flow
 
-1. Initialize stdio and wait for USB serial
+1. Initialize stdio and wait for UART serial
 2. Configure GPIO pins (2 = input with pull-down, 3 = output, 25 = LED)
 3. Create binary semaphore for interrupt signaling
 4. Enable GPIO interrupt with callback on rising/falling edges
@@ -147,6 +147,6 @@ The `FreeRTOSConfig.h` is configured for RP2350 (Cortex-M33):
 
 ## Serial Output
 
-The program outputs debug information via USB serial at startup and during operation. To view output, connect to the Pico's USB serial port (typically `/dev/ttyACM0` on Linux) at 115200 baud using tools like `minicom`, `screen`, or `picocom`.
+The program outputs debug information via UART at startup and during operation. Connect a USB-to-UART adapter to GPIO 0 (TX) and GPIO 1 (RX), then use a terminal program at 115200 baud (typically `/dev/ttyUSB0` on Linux) using tools like `minicom`, `screen`, or `picocom`.
 - # This is for PICO 2 that uses RP2350.
 - cmake with: cmake -DCMAKE_BUILD_TYPE=Debug -DPICO_BOARD=pico2 -DPICO_PLATFORM=rp2350 ../

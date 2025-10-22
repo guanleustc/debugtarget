@@ -109,17 +109,28 @@ The project is configured for RP2350 (Cortex-M33) with:
 
 ## Serial Output
 
-The firmware outputs debug information via USB serial (CDC). To view:
+The firmware outputs debug information via UART (default pins: GPIO 0 for TX, GPIO 1 for RX).
+
+### Hardware Setup for Serial Output
+
+Connect a USB-to-UART adapter to your Pico 2:
+- **GPIO 0 (TX)** → RX on USB-to-UART adapter
+- **GPIO 1 (RX)** → TX on USB-to-UART adapter
+- **GND** → GND on USB-to-UART adapter
+
+### Viewing Serial Output
 
 ```bash
 # Linux
-screen /dev/ttyACM0 115200
+screen /dev/ttyUSB0 115200
 # or
-minicom -D /dev/ttyACM0 -b 115200
+minicom -D /dev/ttyUSB0 -b 115200
 
 # macOS
-screen /dev/tty.usbmodem* 115200
+screen /dev/tty.usbserial-* 115200
 ```
+
+**Note**: The device name (`/dev/ttyUSB0`, `/dev/ttyUSB1`, etc.) may vary depending on your USB-to-UART adapter.
 
 Expected output:
 ```
