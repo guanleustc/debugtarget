@@ -1,0 +1,34 @@
+# Build directory
+build/
+
+# CMake files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake.in
+
+# Build outputs
+*.elf
+*.bin
+*.hex
+*.uf2
+*.map
+*.dis
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Debugging files
+*.o
+*.d
+*.lst
+
+# Python cache
+__pycache__/
+*.pyc
