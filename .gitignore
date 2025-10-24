@@ -1,5 +1,6 @@
 # Build directory
 build/
+*.jdebug.user
 
 # CMake files
 CMakeCache.txt
