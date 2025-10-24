@@ -15,6 +15,8 @@ pico_sdk_init()
 
 add_executable(hello_gpio_irq
         hello_gpio_irq.c
+        JLINK_MONITOR.c
+        JLINK_MONITOR_ISR_SES.S
         )
 
 # Add include directory for FreeRTOSConfig.h
