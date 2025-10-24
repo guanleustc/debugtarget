@@ -29,7 +29,8 @@ target_link_libraries(hello_gpio_irq
         FreeRTOS-Kernel-Heap4)
 
 pico_enable_stdio_usb(hello_gpio_irq 0)
-pico_enable_stdio_uart(hello_gpio_irq 1)
+pico_enable_stdio_uart(hello_gpio_irq 0)
+pico_enable_stdio_rtt(hello_gpio_irq 1)
 
 # create map/bin/hex file etc.
 pico_add_extra_outputs(hello_gpio_irq)

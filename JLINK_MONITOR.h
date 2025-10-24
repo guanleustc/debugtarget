@@ -50,6 +50,8 @@
 ----------------------------------------------------------------------
 File    : JLINK_MONITOR.h
 Purpose : Header file of debug monitor for J-Link monitor mode debug on Cortex-M devices.
+          Supports Cortex-M3/M4/M7 and Cortex-M33 (ARMv8-M with TrustZone).
+          Modified for Raspberry Pi Pico 2 / RP2350 Cortex-M33 compatibility.
 --------  END-OF-HEADER  ---------------------------------------------
 */
 

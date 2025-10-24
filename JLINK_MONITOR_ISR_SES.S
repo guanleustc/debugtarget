@@ -52,6 +52,7 @@
 File    : JLINK_MONITOR_ISR_SES.s
 Purpose : Implementation of debug monitor for J-Link monitor mode
           debug on Cortex-M devices, supporting SES compiler.
+          Modified for Cortex-M33 (ARMv8-M) / RP2350 compatibility.
 --------  END-OF-HEADER  ---------------------------------------------
 */
 
@@ -117,6 +118,11 @@ Purpose : Implementation of debug monitor for J-Link monitor mode
 #define _SYSTEM_DCRDR                   0xE000EDF8 // Debug Core Register Data Register (DCRDR)
 #define _SYSTEM_DEMCR                   0xE000EDFC // Debug Exception and Monitor Control Register (DEMCR)
 
+// Cortex-M33 (ARMv8-M) specific debug registers for TrustZone support
+#define _SYSTEM_DSCSR                   0xE000EE08 // Debug Security Control and Status Register (DSCSR)
+#define _DSCSR_SBRSELEN                 (1 << 1)   // Secure Banked Register Select Enable
+#define _DSCSR_SBRSEL                   (1 << 0)   // Secure Banked Register Select (0=Non-secure, 1=Secure)
+
 #define _SYSTEM_FPCCR                   0xE000EF34 // Floating-Point Context Control Register (FPCCR)
 #define _SYSTEM_FPCAR                   0xE000EF38 // Floating-Point Context Address Register (FPCAR)
 #define _SYSTEM_FPDSCR                  0xE000EF3C // Floating-Point Default Status Control Register (FPDSCR)
@@ -166,17 +172,22 @@ Purpose : Implementation of debug monitor for J-Link monitor mode
         .byte 0x52
         .byte 0x00      // Align to 8-bytes
 
-/********************************************************************* 
-* 
-*       DebugMon_Handler()
-* 
-*  Function description 
+/*********************************************************************
+*
+*       DebugMon_Handler() / isr_debugmonitor()
+*
+*  Function description
 *    Debug monitor handler. CPU enters this handler in case a "halt" request is made from the debugger.
 *    This handler is also responsible for handling commands that are sent by the debugger.
 *
-*  Notes 
-*    This is actually the ISR for the debug inerrupt (exception no. 12)
-*/ 
+*  Notes
+*    This is actually the ISR for the debug interrupt (exception no. 12)
+*    For Cortex-M33 (ARMv8-M) with TrustZone:
+*      - Works in both Secure and Non-Secure states
+*      - Uses standard debug registers (DHCSR, DEMCR, DCRDR, DCRSR)
+*      - DSCSR register available for banked register access if needed
+*    Named isr_debugmonitor for Raspberry Pi Pico SDK compatibility
+*/
         .thumb_func
 //DebugMon_Handler:
 isr_debugmonitor: // this is the name used in PICO SDK
