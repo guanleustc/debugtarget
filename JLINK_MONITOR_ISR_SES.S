@@ -64,6 +64,7 @@ Purpose : Implementation of debug monitor for J-Link monitor mode
         .extern JLINK_MONITOR_OnPoll
 
         .global DebugMon_Handler
+        .global isr_debugmonitor
 
 /*********************************************************************
 *
@@ -143,14 +144,14 @@ Purpose : Implementation of debug monitor for J-Link monitor mode
   #define _HAS_FPU_REGS  0
 #endif
 
-/********************************************************************* 
-* 
+/*********************************************************************
+*
 *       Signature of monitor
-* 
-*  Function description 
+*
+*  Function description
 *    Needed for targets where also a boot ROM is present that possibly specifies a vector table with a valid debug monitor exception entry
-*/ 
-        .section .text, "ax"
+*/
+        .section .text.isr_debugmonitor, "ax"
 
         //
         // JLINKMONHANDLER
@@ -280,14 +281,14 @@ _HandleRestartCPU:
         //
         // Place data section here to not get in trouble with load-offsets
         //
-        .section .text, "ax", %progbits
+        .section .text.isr_debugmonitor, "ax", %progbits
         .align 2
 _AddrDCRDR:
         .long     0xE000EDF8
 _AddrCPACR:
         .long     0xE000ED88
 
-        .section .text, "ax"
+        .section .text.isr_debugmonitor, "ax"
         .thumb_func
 
 ;/********************************************************************* 

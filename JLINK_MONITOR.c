@@ -138,7 +138,7 @@ void JLINK_MONITOR_OnEnter(void) {
   gpio_put(PICO_DEFAULT_LED_PIN, 1);
 
   // Wait 1 second
-  sleep_ms(1000);
+  // sleep_ms(1000);
 
   // Turn off LED
   gpio_put(PICO_DEFAULT_LED_PIN, 0);
