@@ -135,13 +135,13 @@ void JLINK_MONITOR_OnEnter(void) {
   // Add custom code here
   //
   // Turn on LED
-  gpio_put(PICO_DEFAULT_LED_PIN, 1);
+  // gpio_put(PICO_DEFAULT_LED_PIN, 1);
 
   // Wait 1 second
   // sleep_ms(1000);
 
   // Turn off LED
-  gpio_put(PICO_DEFAULT_LED_PIN, 0);
+  // gpio_put(PICO_DEFAULT_LED_PIN, 0);
 //  BSP_SetLED(0);
 //  BSP_ClrLED(1);
 }

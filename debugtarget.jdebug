@@ -22,17 +22,18 @@ void OnProjectLoad (void) {
   //
   // Dialog-generated settings
   //
-  Project.AddPathSubstitute ("/home/le/pico/test/hello_gpio_irq", "$(ProjectDir)");
-  Project.AddPathSubstitute ("/home/le/pico/test/hello_gpio_irq", "$(ProjectDir)");
+  Project.AddPathSubstitute ("/home/le/pico/debugtarget", "$(ProjectDir)");
+  Project.AddPathSubstitute ("/home/le/pico/debugtarget", "$(ProjectDir)");
   Project.SetDevice ("RP2350_M33_0");
   Project.SetHostIF ("USB", "");
   Project.SetTargetIF ("SWD");
   Project.SetTIFSpeed ("4 MHz");
   Project.AddSvdFile ("$(InstallDir)/Config/CPU/Cortex-M33F.svd");
+  Project.SetJLinkScript ("/home/le/pico/debugtarget/EnableMonitorModeDebugging.JLinkScript");
   //
   // User settings
   //
-  File.Open ("$(ProjectDir)/build/hello_gpio_irq.elf");
+  File.Open ("$(ProjectDir)/build/debugtarget.elf");
   Project.SetOSPlugin ("FreeRTOSPlugin_Cortex-M");
 }
 
