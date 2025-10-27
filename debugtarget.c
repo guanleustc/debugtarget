@@ -9,14 +9,19 @@
 #include <stdio.h>
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
+#include "hardware/timer.h"
+#include "hardware/irq.h"
 
 /* FreeRTOS includes */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
 
-#define GPIO_WATCH_PIN 2
-#define GPIO_TOGGLE_PIN 3
+/* ARM Cortex-M includes for interrupt priority configuration */
+#include "hardware/structs/scb.h"
+
+#define GPIO_WATCH_PIN 14
+#define GPIO_TOGGLE_PIN 15
 
 #ifndef PICO_DEFAULT_LED_PIN
 #define PICO_DEFAULT_LED_PIN 25
@@ -30,6 +35,9 @@ static SemaphoreHandle_t xInterruptSemaphore = NULL;
 /* Variables to store interrupt information */
 static volatile uint32_t last_gpio = 0;
 static volatile uint32_t last_events = 0;
+
+/* Repeating timer for LED blink */
+static struct repeating_timer led_timer;
 
 void gpio_event_string(char *buf, uint32_t events);
 
@@ -54,7 +62,6 @@ void vToggleTask(void *pvParameters) {
 
     while (1) {
         gpio_put(GPIO_TOGGLE_PIN, !gpio_get(GPIO_TOGGLE_PIN));
-        gpio_put(PICO_DEFAULT_LED_PIN, gpio_get(GPIO_TOGGLE_PIN));
         printf("[ToggleTask] GPIO %d toggled to %d, GPIO %d reads: %d\n",
                GPIO_TOGGLE_PIN, gpio_get(GPIO_TOGGLE_PIN),
                GPIO_WATCH_PIN, gpio_get(GPIO_WATCH_PIN));
@@ -78,6 +85,22 @@ void vInterruptHandlerTask(void *pvParameters) {
     }
 }
 
+/* Hardware timer interrupt handler - toggles LED every 500ms */
+static bool timer_callback(struct repeating_timer *t) {
+    gpio_put(PICO_DEFAULT_LED_PIN, !gpio_get(PICO_DEFAULT_LED_PIN));
+    return true; // Keep repeating
+}
+
+/* Task 3: High priority task that does nothing - just delays infinitely */
+void vLedBlinkTask(void *pvParameters) {
+    printf("[LedBlinkTask] Started - task will delay infinitely (LED controlled by timer interrupt)\n");
+
+    while (1) {
+        // Delay infinitely
+        vTaskDelay(portMAX_DELAY);
+    }
+}
+
 int main() {
     stdio_init_all();
     // sleep_ms(2000);  // Wait for USB serial to be ready
@@ -85,7 +108,7 @@ int main() {
     printf("===========================================\n");
     printf("Hello GPIO IRQ with FreeRTOS on RP2350\n");
     printf("===========================================\n");
-    printf("Connect GPIO 3 to GPIO 2 with a jumper wire\n");
+    printf("Connect GPIO %d to GPIO %d with a jumper wire\n", GPIO_TOGGLE_PIN, GPIO_WATCH_PIN);
     printf("===========================================\n\n");
 
     // Setup GPIO 2 as input to watch for interrupts
@@ -105,6 +128,36 @@ int main() {
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
     gpio_put(PICO_DEFAULT_LED_PIN, 0);
     printf("[Setup] LED on GPIO %d configured\n", PICO_DEFAULT_LED_PIN);
+
+    // Configure interrupt priorities BEFORE setting up the timer
+    // On Cortex-M33, lower numbers = higher priority
+    // Debug Monitor exception priority = 0x80 (128 - lower priority)
+    // Timer interrupt priority = 0x40 (64 - higher priority, will preempt debug monitor)
+
+    // Set Debug Monitor exception priority (exception 12)
+    // SHPR[2] contains priorities for exception 12 (DebugMonitor)
+    scb_hw->shpr[2] = 0x80;  // DebugMonitor priority = 0x80 (128)
+    printf("[Setup] Debug Monitor priority set to 0x80 (128)\n");
+
+    // Setup hardware timer to toggle LED every 500ms
+    if (!add_repeating_timer_ms(500, timer_callback, NULL, &led_timer)) {
+        printf("[Setup] ERROR: Failed to add repeating timer!\n");
+        while (1) { tight_loop_contents(); }
+    }
+
+    // The repeating timer uses one of TIMER0_IRQ_0-3 or TIMER1_IRQ_0-3
+    // Set all timer IRQs to higher priority than debug monitor
+    // RP2350 has two timer peripherals (TIMER0 and TIMER1)
+    irq_set_priority(TIMER0_IRQ_0, 0x40);
+    irq_set_priority(TIMER0_IRQ_1, 0x40);
+    irq_set_priority(TIMER0_IRQ_2, 0x40);
+    irq_set_priority(TIMER0_IRQ_3, 0x40);
+    irq_set_priority(TIMER1_IRQ_0, 0x40);
+    irq_set_priority(TIMER1_IRQ_1, 0x40);
+    irq_set_priority(TIMER1_IRQ_2, 0x40);
+    irq_set_priority(TIMER1_IRQ_3, 0x40);
+    printf("[Setup] Timer interrupt priority set to 0x40 (64) - higher than Debug Monitor\n");
+    printf("[Setup] Hardware timer configured to toggle LED every 500ms\n");
 
     // Create binary semaphore for interrupt signaling
     xInterruptSemaphore = xSemaphoreCreateBinary();
@@ -153,7 +206,24 @@ int main() {
         printf("[Setup] ERROR: Failed to create InterruptTask!\n");
         while (1) { tight_loop_contents(); }
     }
-    printf("[Setup] InterruptTask created\n\n");
+    printf("[Setup] InterruptTask created\n");
+
+    // Create Task 3: LED blink task (highest priority)
+    TaskHandle_t xLedBlinkTaskHandle = NULL;
+    xReturned = xTaskCreate(
+        vLedBlinkTask,         /* Task function */
+        "LedBlinkTask",        /* Task name */
+        256,                   /* Stack size (words) */
+        NULL,                  /* Task parameters */
+        3,                     /* Highest priority */
+        &xLedBlinkTaskHandle   /* Task handle */
+    );
+
+    if (xReturned != pdPASS) {
+        printf("[Setup] ERROR: Failed to create LedBlinkTask!\n");
+        while (1) { tight_loop_contents(); }
+    }
+    printf("[Setup] LedBlinkTask created\n\n");
 
     printf("Starting FreeRTOS scheduler...\n\n");
 

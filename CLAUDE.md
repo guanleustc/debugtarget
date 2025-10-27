@@ -4,10 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Raspberry Pi Pico 2 (RP2350) GPIO interrupt example project using the Pico SDK with FreeRTOS. The project demonstrates how to use GPIO interrupts with FreeRTOS tasks. It implements two tasks:
+This is a Raspberry Pi Pico 2 (RP2350) GPIO interrupt example project using the Pico SDK with FreeRTOS. The project demonstrates how to use GPIO interrupts with FreeRTOS tasks, and hardware timer interrupts. It implements three tasks:
 
-1. **Toggle Task**: Toggles GPIO 3 every 1 second (and mirrors state to the LED)
-2. **Interrupt Handler Task**: Runs idle and responds to GPIO interrupts on GPIO 2 when triggered by GPIO 3
+1. **Toggle Task**: Toggles GPIO 15 every 1 second
+2. **Interrupt Handler Task**: Runs idle and responds to GPIO interrupts on GPIO 14 when triggered by GPIO 15
+3. **LED Blink Task**: High-priority task that delays infinitely (does nothing). The LED is toggled by a hardware timer interrupt every 500ms.
 
 The tasks communicate using a binary semaphore - the GPIO ISR signals the semaphore, which wakes up the interrupt handler task to process the event.
 
@@ -85,10 +86,10 @@ To flash the firmware to a Raspberry Pi Pico:
 
 ## Hardware Configuration
 
-- **GPIO 2**: Input pin with pull-down resistor, configured for interrupt on rising and falling edges
-- **GPIO 3**: Output pin that toggles every 1 second (controlled by Toggle Task)
-- **GPIO 25** (PICO_DEFAULT_LED_PIN): Onboard LED, mirrors GPIO 3 state
-- **Required hardware setup**: Connect GPIO 3 to GPIO 2 with a jumper wire
+- **GPIO 14**: Input pin with pull-down resistor, configured for interrupt on rising and falling edges
+- **GPIO 15**: Output pin that toggles every 1 second (controlled by Toggle Task)
+- **GPIO 25** (PICO_DEFAULT_LED_PIN): Onboard LED, blinks independently every 500ms (controlled by hardware timer interrupt)
+- **Required hardware setup**: Connect GPIO 15 to GPIO 14 with a jumper wire
 
 ## SDK Integration
 
@@ -102,37 +103,60 @@ The project uses:
 ### Task Design
 
 **Task 1: vToggleTask** (Priority 1)
-- Toggles GPIO 3 and LED every 1 second using `vTaskDelay(pdMS_TO_TICKS(1000))`
+- Toggles GPIO 15 every 1 second using `vTaskDelay(pdMS_TO_TICKS(1000))`
 - Runs continuously in a loop
-- Lower priority than interrupt handler task
+- Lowest priority task
 
 **Task 2: vInterruptHandlerTask** (Priority 2)
 - Runs idle, waiting on binary semaphore
 - Woken by GPIO ISR via `xSemaphoreGiveFromISR()`
 - Processes and prints interrupt event information
-- Higher priority ensures immediate response to interrupts
+- Medium priority ensures timely response to interrupts
 
-### Synchronization
+**Task 3: vLedBlinkTask** (Priority 3)
+- Does nothing - delays infinitely using `vTaskDelay(portMAX_DELAY)`
+- LED is actually toggled by a hardware timer interrupt (not by this task)
+- Highest priority task, but remains blocked indefinitely
 
-- **Binary Semaphore** (`xInterruptSemaphore`): Used for ISR-to-task communication
+### Synchronization and Interrupts
+
+- **Binary Semaphore** (`xInterruptSemaphore`): Used for GPIO ISR-to-task communication
 - ISR gives semaphore using `xSemaphoreGiveFromISR()` with proper context switching
 - Interrupt handler task blocks on `xSemaphoreTake()` with `portMAX_DELAY`
+- **Hardware Timer Interrupt**: Repeating timer configured to fire every 500ms to toggle LED
+  - Uses `add_repeating_timer_ms()` from Pico SDK
+  - Timer callback toggles LED GPIO independently of FreeRTOS tasks
+
+### Interrupt Priorities
+
+The interrupt priorities are configured to ensure the timer interrupt can preempt the debug monitor:
+- **Debug Monitor Exception**: Priority 0x80 (128) - Lower priority
+- **Timer IRQs (TIMER0_IRQ_0-3, TIMER1_IRQ_0-3)**: Priority 0x40 (64) - Higher priority
+- RP2350 has two timer peripherals (TIMER0 and TIMER1), each with 4 IRQ outputs
+- On ARM Cortex-M33, lower numbers = higher priority
+- The timer interrupt can preempt the debug monitor to ensure consistent LED timing during debugging
 
 ### Main Flow
 
 1. Initialize stdio and wait for UART serial
-2. Configure GPIO pins (2 = input with pull-down, 3 = output, 25 = LED)
-3. Create binary semaphore for interrupt signaling
-4. Enable GPIO interrupt with callback on rising/falling edges
-5. Create Toggle Task (priority 1)
-6. Create Interrupt Handler Task (priority 2)
-7. Start FreeRTOS scheduler - never returns
+2. Configure GPIO pins (14 = input with pull-down, 15 = output, 25 = LED)
+3. Configure interrupt priorities (Debug Monitor = 0x80, Timer IRQ = 0x40)
+4. Setup hardware timer to toggle LED every 500ms
+5. Set timer interrupt priority to higher than debug monitor
+6. Create binary semaphore for interrupt signaling
+7. Enable GPIO interrupt with callback on rising/falling edges
+8. Create Toggle Task (priority 1)
+9. Create Interrupt Handler Task (priority 2)
+10. Create LED Blink Task (priority 3)
+11. Start FreeRTOS scheduler - never returns
 
 ### Key Functions
 
-- `gpio_callback()`: ISR that stores interrupt info and signals semaphore to wake handler task
-- `vToggleTask()`: FreeRTOS task that toggles GPIO 3 every second
-- `vInterruptHandlerTask()`: FreeRTOS task that waits for and processes interrupts
+- `gpio_callback()`: GPIO ISR that stores interrupt info and signals semaphore to wake handler task
+- `timer_callback()`: Hardware timer ISR that toggles LED every 500ms
+- `vToggleTask()`: FreeRTOS task that toggles GPIO 15 every second
+- `vInterruptHandlerTask()`: FreeRTOS task that waits for and processes GPIO interrupts
+- `vLedBlinkTask()`: FreeRTOS task that delays infinitely (does nothing - LED controlled by timer)
 - `gpio_event_string()`: Utility to convert interrupt event bitmask to human-readable string
 
 ## FreeRTOS Configuration
