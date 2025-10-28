@@ -22,6 +22,7 @@
 
 #define GPIO_WATCH_PIN 14
 #define GPIO_TOGGLE_PIN 15
+#define GPIO_BUTTON_PIN 16  // External button for breakpoint trigger (connect to GND when pressed)
 
 #ifndef PICO_DEFAULT_LED_PIN
 #define PICO_DEFAULT_LED_PIN 25
@@ -91,13 +92,32 @@ static bool timer_callback(struct repeating_timer *t) {
     return true; // Keep repeating
 }
 
-/* Task 3: High priority task that does nothing - just delays infinitely */
+/* Task 3: High priority task that polls button and triggers breakpoint */
 void vLedBlinkTask(void *pvParameters) {
-    printf("[LedBlinkTask] Started - task will delay infinitely (LED controlled by timer interrupt)\n");
+    printf("[LedBlinkTask] Started - polling GPIO %d button for breakpoint trigger\n", GPIO_BUTTON_PIN);
+
+    bool last_button_state = true;  // Start high due to pull-up
 
     while (1) {
-        // Delay infinitely
-        vTaskDelay(portMAX_DELAY);
+        // // Poll the button (active low - reads 0 when pressed)
+        // bool current_button_state = gpio_get(GPIO_BUTTON_PIN);
+
+        // // Detect falling edge (button press - transition from high to low)
+        // if (!current_button_state && last_button_state) {
+        //     printf("[LedBlinkTask] Button on GPIO %d pressed - triggering breakpoint!\n", GPIO_BUTTON_PIN);
+
+        //     // Trigger software breakpoint
+        //     __asm volatile("bkpt #0");
+
+        //     printf("[LedBlinkTask] Resumed from breakpoint\n");
+        // }
+
+        // last_button_state = current_button_state;
+
+        __asm volatile("bkpt #0");
+        
+        // Yield briefly to avoid starving lower-priority tasks
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
@@ -110,6 +130,15 @@ int main() {
     printf("===========================================\n");
     printf("Connect GPIO %d to GPIO %d with a jumper wire\n", GPIO_TOGGLE_PIN, GPIO_WATCH_PIN);
     printf("===========================================\n\n");
+
+    // Wait until Debug Exception and Monitor Control Register (DEMCR).MON_REQ becomes 1
+    // DEMCR address: 0xE000EDFC, MON_REQ bit: 19
+    volatile uint32_t *DEMCR = (volatile uint32_t *)0xE000EDFCu;
+    printf("[Setup] Waiting for DEMCR.MON_REQ (bit 19) to become 1...\n");
+    while (((*DEMCR) & (1u << 19)) == 0) {
+        tight_loop_contents();
+    }
+    printf("[Setup] DEMCR.MON_REQ is now 1\n");
 
     // Setup GPIO 2 as input to watch for interrupts
     gpio_init(GPIO_WATCH_PIN);
@@ -128,6 +157,12 @@ int main() {
     gpio_set_dir(PICO_DEFAULT_LED_PIN, GPIO_OUT);
     gpio_put(PICO_DEFAULT_LED_PIN, 0);
     printf("[Setup] LED on GPIO %d configured\n", PICO_DEFAULT_LED_PIN);
+
+    // Setup button for breakpoint trigger
+    gpio_init(GPIO_BUTTON_PIN);
+    gpio_set_dir(GPIO_BUTTON_PIN, GPIO_IN);
+    gpio_pull_up(GPIO_BUTTON_PIN);  // Enable pull-up resistor (button connects to GND)
+    printf("[Setup] Button on GPIO %d configured (active low, connect to GND to trigger)\n", GPIO_BUTTON_PIN);
 
     // Configure interrupt priorities BEFORE setting up the timer
     // On Cortex-M33, lower numbers = higher priority

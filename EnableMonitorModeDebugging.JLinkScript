@@ -47,8 +47,8 @@ Literature:
 *    (2) Should only set some global DLL variables
 */
 int ConfigTargetSettings(void) {
-  JLINK_SYS_Report("ConfigTargetSettings(): Enable Monitor Mode Debugging");
-  JLINK_ExecCommand("SetMonModeDebug = 1");
+  //JLINK_SYS_Report("ConfigTargetSettings(): Enable Monitor Mode Debugging");
+  //JLINK_ExecCommand("SetMonModeDebug = 1");
 //  JLINK_ExecCommand("SetMonModeVTableAddr = <Addr>");  // Needed in case of the monitor mode interrupts needs to be forwarded, see section "Forwarding of Monitor Interrupts" in the J-Link User Guide (UM08001)
   return 0;
 }

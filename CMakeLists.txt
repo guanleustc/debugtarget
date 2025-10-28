@@ -25,6 +25,7 @@ target_include_directories(debugtarget PRIVATE ${CMAKE_CURRENT_LIST_DIR})
 # pull in common dependencies
 target_link_libraries(debugtarget
         pico_stdlib
+        hardware_gpio
         FreeRTOS-Kernel
         FreeRTOS-Kernel-Heap4)
 
