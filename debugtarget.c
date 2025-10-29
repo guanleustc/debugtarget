@@ -131,14 +131,18 @@ int main() {
     printf("Connect GPIO %d to GPIO %d with a jumper wire\n", GPIO_TOGGLE_PIN, GPIO_WATCH_PIN);
     printf("===========================================\n\n");
 
-    // Wait until Debug Exception and Monitor Control Register (DEMCR).MON_REQ becomes 1
-    // DEMCR address: 0xE000EDFC, MON_REQ bit: 19
-    volatile uint32_t *DEMCR = (volatile uint32_t *)0xE000EDFCu;
-    printf("[Setup] Waiting for DEMCR.MON_REQ (bit 19) to become 1...\n");
-    while (((*DEMCR) & (1u << 19)) == 0) {
-        tight_loop_contents();
-    }
-    printf("[Setup] DEMCR.MON_REQ is now 1\n");
+    // // Wait until Debug Exception and Monitor Control Register (DEMCR).MON_REQ becomes 1
+    // // DEMCR address: 0xE000EDFC, MON_REQ bit: 19
+    // volatile uint32_t *DEMCR = (volatile uint32_t *)0xE000EDFCu;
+    // printf("[Setup] Waiting for DEMCR.MON_REQ (bit 19) to become 1...\n");
+    // while (((*DEMCR) & (1u << 19)) == 0) {
+    //     tight_loop_contents();
+    // }
+    // printf("[Setup] DEMCR.MON_REQ is now 1\n");
+
+    // // Clear DEMCR.MON_REQ by writing 1 to bit 19
+    // *DEMCR = *DEMCR & ~(1u << 19);
+    // printf("[Setup] DEMCR.MON_REQ cleared\n");
 
     // Setup GPIO 2 as input to watch for interrupts
     gpio_init(GPIO_WATCH_PIN);
