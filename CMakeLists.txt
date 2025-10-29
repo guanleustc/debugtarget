@@ -33,5 +33,7 @@ pico_enable_stdio_usb(debugtarget 0)
 pico_enable_stdio_uart(debugtarget 0)
 pico_enable_stdio_rtt(debugtarget 1)
 
+pico_set_binary_type(debugtarget copy_to_ram)
+
 # create map/bin/hex file etc.
 pico_add_extra_outputs(debugtarget)
