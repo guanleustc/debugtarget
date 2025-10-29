@@ -66,6 +66,8 @@ void vToggleTask(void *pvParameters) {
         printf("[ToggleTask] GPIO %d toggled to %d, GPIO %d reads: %d\n",
                GPIO_TOGGLE_PIN, gpio_get(GPIO_TOGGLE_PIN),
                GPIO_WATCH_PIN, gpio_get(GPIO_WATCH_PIN));
+        
+        // __asm volatile("bkpt #0");
 
         // Delay for 1 second
         vTaskDelay(pdMS_TO_TICKS(1000));
@@ -114,7 +116,7 @@ void vLedBlinkTask(void *pvParameters) {
 
         // last_button_state = current_button_state;
 
-        __asm volatile("bkpt #0");
+        // __asm volatile("bkpt #0");
         
         // Yield briefly to avoid starving lower-priority tasks
         vTaskDelay(pdMS_TO_TICKS(1000));
