@@ -130,17 +130,18 @@ The project uses:
 ### Interrupt Priorities
 
 The interrupt priorities are configured to ensure the timer interrupt can preempt the debug monitor:
-- **Debug Monitor Exception**: Priority 0x80 (128) - Lower priority
+- **Debug Monitor Exception**: Priority 0xFF (255) - **LOWEST** priority (lower than SysTick)
 - **Timer IRQs (TIMER0_IRQ_0-3, TIMER1_IRQ_0-3)**: Priority 0x40 (64) - Higher priority
+- **SysTick (FreeRTOS kernel)**: Priority ~0xF0 (based on configMAX_SYSCALL_INTERRUPT_PRIORITY = 16)
 - RP2350 has two timer peripherals (TIMER0 and TIMER1), each with 4 IRQ outputs
 - On ARM Cortex-M33, lower numbers = higher priority
-- The timer interrupt can preempt the debug monitor to ensure consistent LED timing during debugging
+- The timer interrupt and all other interrupts can preempt the debug monitor
 
 ### Main Flow
 
 1. Initialize stdio and wait for UART serial
 2. Configure GPIO pins (14 = input with pull-down, 15 = output, 25 = LED)
-3. Configure interrupt priorities (Debug Monitor = 0x80, Timer IRQ = 0x40)
+3. Configure interrupt priorities (Debug Monitor = 0xFF - lowest, Timer IRQ = 0x40)
 4. Setup hardware timer to toggle LED every 500ms
 5. Set timer interrupt priority to higher than debug monitor
 6. Create binary semaphore for interrupt signaling

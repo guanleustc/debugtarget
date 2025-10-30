@@ -173,13 +173,14 @@ int main() {
 
     // Configure interrupt priorities BEFORE setting up the timer
     // On Cortex-M33, lower numbers = higher priority
-    // Debug Monitor exception priority = 0x80 (128 - lower priority)
+    // Debug Monitor exception priority = 0xFF (255 - LOWEST priority)
     // Timer interrupt priority = 0x40 (64 - higher priority, will preempt debug monitor)
+    // SysTick runs at ~0xF0 (kernel priority), so 0xFF ensures Debug Monitor is lowest
 
     // Set Debug Monitor exception priority (exception 12)
     // SHPR[2] contains priorities for exception 12 (DebugMonitor)
-    scb_hw->shpr[2] = 0x80;  // DebugMonitor priority = 0x80 (128)
-    printf("[Setup] Debug Monitor priority set to 0x80 (128)\n");
+    scb_hw->shpr[2] = 0xFF;  // DebugMonitor priority = 0xFF (255 - absolute lowest)
+    printf("[Setup] Debug Monitor priority set to 0xFF (255 - LOWEST)\n");
 
     // Setup hardware timer to toggle LED every 500ms
     if (!add_repeating_timer_ms(500, timer_callback, NULL, &led_timer)) {
