@@ -90,7 +90,7 @@ void vInterruptHandlerTask(void *pvParameters) {
 
 /* Hardware timer interrupt handler - toggles LED every 500ms */
 static bool timer_callback(struct repeating_timer *t) {
-    gpio_put(PICO_DEFAULT_LED_PIN, !gpio_get(PICO_DEFAULT_LED_PIN));
+    // gpio_put(PICO_DEFAULT_LED_PIN, !gpio_get(PICO_DEFAULT_LED_PIN));
     return true; // Keep repeating
 }
 
@@ -119,6 +119,7 @@ void vLedBlinkTask(void *pvParameters) {
         // __asm volatile("bkpt #0");
         
         // Yield briefly to avoid starving lower-priority tasks
+        gpio_put(PICO_DEFAULT_LED_PIN, !gpio_get(PICO_DEFAULT_LED_PIN));
         vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
