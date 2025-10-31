@@ -179,8 +179,12 @@ int main() {
 
     // Set Debug Monitor exception priority (exception 12)
     // SHPR[2] contains priorities for exception 12 (DebugMonitor)
-    scb_hw->shpr[2] = 0xFF;  // DebugMonitor priority = 0xFF (255 - absolute lowest)
-    printf("[Setup] Debug Monitor priority set to 0xFF (255 - LOWEST)\n");
+    // The RP2350 (Cortex-M33) implements 4 priority bits in positions [7:4].
+    // Read-modify-write to set only DebugMonitor priority
+    uint32_t shpr3 = scb_hw->shpr[2];
+    shpr3 = (shpr3 & 0xFFFFFF00) | 0x50;  // Set DebugMonitor to 0x50; higher than SysTick (~0xF0) but lower than timer IRQ (0x40)
+    scb_hw->shpr[2] = shpr3;
+    printf("[Setup] Debug Monitor priority set to 0x50 (255 - LOWEST)\n");
 
     // Setup hardware timer to toggle LED every 500ms
     if (!add_repeating_timer_ms(500, timer_callback, NULL, &led_timer)) {
